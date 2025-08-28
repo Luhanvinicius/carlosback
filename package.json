@@ -10,8 +10,6 @@
   },
   "engines": {
     "node": "20.x"
-    // ou "22.x" se você quiser já em 22
-    // ou ainda: ">=20 <23" para dar flexibilidade entre 20 e 22
   },
   "keywords": [],
   "author": "",
