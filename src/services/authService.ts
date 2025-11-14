@@ -70,7 +70,7 @@ export const register = async (
   // opcional: já retornar token para logar após cadastro
   const payload = { id: user.id, name: user.name, email: user.email, role: user.role as Role };
   const expiresIn = getJwtExpires();
-  const signOptions: SignOptions = { expiresIn: expiresIn as string | number };
+  const signOptions = { expiresIn } as SignOptions;
   const token = jwt.sign(payload, getJwtSecret(), signOptions);
 
   return { user, token };
@@ -100,7 +100,7 @@ export const login = async (email: string, password: string) => {
 
   const payload = { id: user.id, name: user.name, email: user.email, role: user.role as Role };
   const expiresIn = getJwtExpires();
-  const signOptions: SignOptions = { expiresIn: expiresIn as string | number };
+  const signOptions = { expiresIn } as SignOptions;
   const token = jwt.sign(payload, getJwtSecret(), signOptions);
 
   const { password: _hidden, ...safe } = user;
