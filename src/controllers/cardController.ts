@@ -125,10 +125,25 @@ export const gerarCardPartida = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const partida = await prisma.partida.findUnique({
-      where: { id },
-      include: { atleta1: true, atleta2: true, atleta3: true, atleta4: true },
-    });
+    const result = await query(
+      `SELECT p.*, 
+       a1.nome as "atleta1Nome", a2.nome as "atleta2Nome",
+       a3.nome as "atleta3Nome", a4.nome as "atleta4Nome"
+       FROM "Partida" p
+       LEFT JOIN "Atleta" a1 ON p."atleta1Id" = a1.id
+       LEFT JOIN "Atleta" a2 ON p."atleta2Id" = a2.id
+       LEFT JOIN "Atleta" a3 ON p."atleta3Id" = a3.id
+       LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
+       WHERE p.id = $1`,
+      [id]
+    );
+    const partida = result.rows[0] ? {
+      ...result.rows[0],
+      atleta1: result.rows[0].atleta1Nome ? { nome: result.rows[0].atleta1Nome } : null,
+      atleta2: result.rows[0].atleta2Nome ? { nome: result.rows[0].atleta2Nome } : null,
+      atleta3: result.rows[0].atleta3Nome ? { nome: result.rows[0].atleta3Nome } : null,
+      atleta4: result.rows[0].atleta4Nome ? { nome: result.rows[0].atleta4Nome } : null,
+    } : null;
     if (!partida) {
        res.status(404).json({ error: "Partida não encontrada" });
       return       

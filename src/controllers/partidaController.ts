@@ -9,8 +9,6 @@ import fs from "fs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// Prisma removido - usando query direto
-
 // Registra a fonte (ajuste o caminho se necessário)
 registerFont(path.join(__dirname, "../assets/fonts/OpenSans-Bold.ttf"), {
   family: "Open Sans",
@@ -41,38 +39,31 @@ export const criarPartida = async (req: Request, res: Response): Promise<void> =
 
     const atletasIds = [atleta1Id, atleta2Id, atleta3Id, atleta4Id].filter(Boolean) as string[];
     for (const id of atletasIds) {
-      const atleta = await prisma.atleta.findUnique({ where: { id } });
-      if (!atleta) {
+      const result = await query('SELECT id FROM "Atleta" WHERE id = $1', [id]);
+      if (result.rows.length === 0) {
         res.status(400).json({ error: `Atleta com id ${id} não encontrado` });
         return;
       }
     }
 
     if (torneioId) {
-      const torneio = await prisma.torneio.findUnique({ where: { id: torneioId } });
-      if (!torneio) {
+      const result = await query('SELECT id FROM "Torneio" WHERE id = $1', [torneioId]);
+      if (result.rows.length === 0) {
         res.status(400).json({ error: `Torneio com id ${torneioId} não encontrado` });
         return;
       }
     }
 
-    const novaPartida = await prisma.partida.create({
-      data: {
-        data: new Date(data),
-        local,
-        atleta1Id,
-        atleta2Id,
-        atleta3Id: atleta3Id || null,
-        atleta4Id: atleta4Id || null,
-        gamesTime1,
-        gamesTime2,
-        tiebreakTime1,
-        tiebreakTime2,
-        supertiebreakTime1,
-        supertiebreakTime2,
-        torneioId: torneioId || null,
-      },
-    });
+    const partidaId = uuidv4();
+    await query(
+      `INSERT INTO "Partida" (id, data, local, "atleta1Id", "atleta2Id", "atleta3Id", "atleta4Id", "gamesTime1", "gamesTime2", "tiebreakTime1", "tiebreakTime2", "supertiebreakTime1", "supertiebreakTime2", "torneioId", "createdAt") 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())`,
+      [partidaId, new Date(data), local, atleta1Id, atleta2Id, atleta3Id || null, atleta4Id || null,
+       gamesTime1 || null, gamesTime2 || null, tiebreakTime1 || null, tiebreakTime2 || null,
+       supertiebreakTime1 || null, supertiebreakTime2 || null, torneioId || null]
+    );
+    const result = await query('SELECT * FROM "Partida" WHERE id = $1', [partidaId]);
+    const novaPartida = result.rows[0];
 
     res.status(201).json(novaPartida);
   } catch (error) {
@@ -83,17 +74,27 @@ export const criarPartida = async (req: Request, res: Response): Promise<void> =
 
 export const listarPartidas = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const partidas = await prisma.partida.findMany({
-      include: {
-        atleta1: true,
-        atleta2: true,
-        atleta3: true,
-        atleta4: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const result = await query(
+      `SELECT p.*, 
+       a1.nome as "atleta1Nome", a1.id as "atleta1Id", 
+       a2.nome as "atleta2Nome", a2.id as "atleta2Id",
+       a3.nome as "atleta3Nome", a3.id as "atleta3Id", 
+       a4.nome as "atleta4Nome", a4.id as "atleta4Id"
+       FROM "Partida" p
+       LEFT JOIN "Atleta" a1 ON p."atleta1Id" = a1.id
+       LEFT JOIN "Atleta" a2 ON p."atleta2Id" = a2.id
+       LEFT JOIN "Atleta" a3 ON p."atleta3Id" = a3.id
+       LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
+       ORDER BY p."createdAt" DESC`,
+      []
+    );
+    const partidas = result.rows.map((row: any) => ({
+      ...row,
+      atleta1: row.atleta1Nome ? { id: row.atleta1Id, nome: row.atleta1Nome } : null,
+      atleta2: row.atleta2Nome ? { id: row.atleta2Id, nome: row.atleta2Nome } : null,
+      atleta3: row.atleta3Nome ? { id: row.atleta3Id, nome: row.atleta3Nome } : null,
+      atleta4: row.atleta4Nome ? { id: row.atleta4Id, nome: row.atleta4Nome } : null,
+    }));
 
     res.json(partidas);
   } catch (error) {
@@ -204,17 +205,12 @@ export const atualizarPlacar = async (req: Request, res: Response): Promise<void
       }
     }
 
-    const partidaAtualizada = await prisma.partida.update({
-      where: { id },
-      data: {
-        gamesTime1: g1,
-        gamesTime2: g2,
-        tiebreakTime1: tiebreakInformado ? (tiebreakTime1 as number) : null,
-        tiebreakTime2: tiebreakInformado ? (tiebreakTime2 as number) : null,
-        supertiebreakTime1: null,
-        supertiebreakTime2: null,
-      },
-    });
+    await query(
+      `UPDATE "Partida" SET "gamesTime1" = $1, "gamesTime2" = $2, "tiebreakTime1" = $3, "tiebreakTime2" = $4, "supertiebreakTime1" = NULL, "supertiebreakTime2" = NULL, "updatedAt" = NOW() WHERE id = $5`,
+      [g1, g2, tiebreakInformado ? (tiebreakTime1 as number) : null, tiebreakInformado ? (tiebreakTime2 as number) : null, id]
+    );
+    const result = await query('SELECT * FROM "Partida" WHERE id = $1', [id]);
+    const partidaAtualizada = result.rows[0];
 
     res.json(partidaAtualizada);
   } catch (error) {
@@ -227,20 +223,32 @@ export const gerarCardPartida = async (req: Request, res: Response): Promise<voi
   try {
     const { id } = req.params;
 
-    const partida = await prisma.partida.findUnique({
-      where: { id },
-      include: {
-        atleta1: true,
-        atleta2: true,
-        atleta3: true,
-        atleta4: true,
-      },
-    });
-
-    if (!partida) {
+    const result = await query(
+      `SELECT p.*, 
+       a1.nome as "atleta1Nome", a1.id as "atleta1Id", a1."fotoUrl" as "atleta1Foto",
+       a2.nome as "atleta2Nome", a2.id as "atleta2Id", a2."fotoUrl" as "atleta2Foto",
+       a3.nome as "atleta3Nome", a3.id as "atleta3Id", a3."fotoUrl" as "atleta3Foto",
+       a4.nome as "atleta4Nome", a4.id as "atleta4Id", a4."fotoUrl" as "atleta4Foto"
+       FROM "Partida" p
+       LEFT JOIN "Atleta" a1 ON p."atleta1Id" = a1.id
+       LEFT JOIN "Atleta" a2 ON p."atleta2Id" = a2.id
+       LEFT JOIN "Atleta" a3 ON p."atleta3Id" = a3.id
+       LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
+       WHERE p.id = $1`,
+      [id]
+    );
+    const row = result.rows[0];
+    if (!row) {
       res.status(404).json({ error: "Partida não encontrada" });
       return;
     }
+    const partida = {
+      ...row,
+      atleta1: row.atleta1Nome ? { id: row.atleta1Id, nome: row.atleta1Nome, fotoUrl: row.atleta1Foto } : null,
+      atleta2: row.atleta2Nome ? { id: row.atleta2Id, nome: row.atleta2Nome, fotoUrl: row.atleta2Foto } : null,
+      atleta3: row.atleta3Nome ? { id: row.atleta3Id, nome: row.atleta3Nome, fotoUrl: row.atleta3Foto } : null,
+      atleta4: row.atleta4Nome ? { id: row.atleta4Id, nome: row.atleta4Nome, fotoUrl: row.atleta4Foto } : null,
+    };
 
     const largura = 1080;
     const altura = 1920;
@@ -336,16 +344,11 @@ export const gerarCardPartida = async (req: Request, res: Response): Promise<voi
 
 export async function buscarUltimosConfrontosFormatados(partidaId: string): Promise<string[]> {
   // Pega a partida base (somente IDs e data)
-  const partidaAtual = await prisma.partida.findUnique({
-    where: { id: partidaId },
-    select: {
-      data: true,
-      atleta1Id: true,
-      atleta2Id: true,
-      atleta3Id: true,
-      atleta4Id: true,
-    },
-  });
+  const result = await query(
+    'SELECT data, "atleta1Id", "atleta2Id", "atleta3Id", "atleta4Id" FROM "Partida" WHERE id = $1',
+    [partidaId]
+  );
+  const partidaAtual = result.rows[0];
 
   if (!partidaAtual) return [];
 

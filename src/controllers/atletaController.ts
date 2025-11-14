@@ -60,15 +60,22 @@ export const listarAtletas = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const whereClause = usuario.role === "ADMIN" ? '' : `WHERE "usuarioId" = '${usuario.id}'`;
-    const result = await query(
-      `SELECT a.*, u.name as "usuarioName", u.role as "usuarioRole" 
-       FROM "Atleta" a 
-       LEFT JOIN "User" u ON a."usuarioId" = u.id 
-       ${whereClause}
-       ORDER BY a.nome ASC`,
-      []
-    );
+    const result = usuario.role === "ADMIN"
+      ? await query(
+          `SELECT a.*, u.name as "usuarioName", u.role as "usuarioRole" 
+           FROM "Atleta" a 
+           LEFT JOIN "User" u ON a."usuarioId" = u.id 
+           ORDER BY a.nome ASC`,
+          []
+        )
+      : await query(
+          `SELECT a.*, u.name as "usuarioName", u.role as "usuarioRole" 
+           FROM "Atleta" a 
+           LEFT JOIN "User" u ON a."usuarioId" = u.id 
+           WHERE a."usuarioId" = $1
+           ORDER BY a.nome ASC`,
+          [usuario.id]
+        );
     const atletas = result.rows.map((row: any) => ({
       ...row,
       usuario: row.usuarioName ? { name: row.usuarioName, role: row.usuarioRole } : null
