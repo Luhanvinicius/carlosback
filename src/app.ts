@@ -19,7 +19,7 @@ app.set("trust proxy", true);
 
 // CORS - SEMPRE permitir todas as origens para funcionar no Vercel
 // Middleware CORS DEVE ser o PRIMEIRO middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction): void => {
   console.log(`[CORS App] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
   // SEMPRE permite a origem da requisição (ou qualquer origem)
@@ -33,7 +33,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   // Responde preflight OPTIONS imediatamente
   if (req.method === "OPTIONS") {
     console.log("[CORS App] OPTIONS preflight - respondendo 204");
-    return res.status(204).send();
+    res.status(204).send();
+    return;
   }
   
   next();
