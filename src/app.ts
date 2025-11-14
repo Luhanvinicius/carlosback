@@ -24,12 +24,15 @@ const origins = (process.env.CORS_ORIGIN || "")
   .filter(Boolean);
 
 // habilita CORS global — precisa vir ANTES das rotas
-const corsConfig: cors.CorsOptions = {
-  origin: origins.length ? origins : true, // true = ecoa qualquer origin (útil local)
-  credentials: false, // não usa cookies; Authorization header não precisa disso
-};
+// Se CORS_ORIGIN for "*", permite qualquer origem
+const corsOrigin = origins.length && origins[0] === "*" ? true : origins.length ? origins : true;
 
-app.use(cors({ origin: origins.length ? origins : true }));
+app.use(cors({ 
+  origin: corsOrigin,
+  credentials: false, // não usa cookies; Authorization header não precisa disso
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(express.json());
 
