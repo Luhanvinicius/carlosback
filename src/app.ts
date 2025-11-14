@@ -19,7 +19,7 @@ app.set("trust proxy", true);
 
 // CORS - SEMPRE permitir todas as origens para funcionar no Vercel
 // Middleware CORS DEVE ser o PRIMEIRO middleware
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`[CORS App] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
   // SEMPRE permite a origem da requisição (ou qualquer origem)
