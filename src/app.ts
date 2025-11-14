@@ -27,12 +27,23 @@ const origins = (process.env.CORS_ORIGIN || "")
 // Se CORS_ORIGIN for "*", permite qualquer origem
 const corsOrigin = origins.length && origins[0] === "*" ? true : origins.length ? origins : true;
 
+// Configuração CORS mais permissiva para funcionar no Vercel
 app.use(cors({ 
   origin: corsOrigin,
-  credentials: false, // não usa cookies; Authorization header não precisa disso
+  credentials: false,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests explicitamente
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.sendStatus(204);
+});
 
 app.use(express.json());
 
