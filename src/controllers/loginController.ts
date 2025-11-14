@@ -64,7 +64,11 @@ export const login: RequestHandler = async (req, res) => {
     setNoStore(res);
 
     // Retorna apenas o usuário (sem token JWT - usando apenas BASIC auth)
-    res.json({ usuario });
+    // Compatibilidade: retorna tanto 'usuario' quanto 'user' para garantir funcionamento
+    res.json({ 
+      usuario,
+      user: usuario  // Alias para compatibilidade com frontend
+    });
     return;
   } catch (error: any) {
     console.error("login error:", error);
