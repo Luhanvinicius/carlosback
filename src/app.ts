@@ -27,6 +27,20 @@ const origins = (process.env.CORS_ORIGIN || "")
 // Se CORS_ORIGIN for "*", permite qualquer origem
 const corsOrigin = origins.length && origins[0] === "*" ? true : origins.length ? origins : true;
 
+// Handle preflight requests ANTES do middleware CORS
+app.options("*", (req, res) => {
+  const origin = req.headers.origin;
+  if (corsOrigin === true || (Array.isArray(corsOrigin) && corsOrigin.includes(origin || "")) || origin === corsOrigin) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+  } else {
+    res.header("Access-Control-Allow-Origin", "*");
+  }
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.header("Access-Control-Max-Age", "86400");
+  res.sendStatus(204);
+});
+
 // Configuração CORS mais permissiva para funcionar no Vercel
 app.use(cors({ 
   origin: corsOrigin,
@@ -36,14 +50,6 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
-
-// Handle preflight requests explicitamente
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  res.sendStatus(204);
-});
 
 app.use(express.json());
 
