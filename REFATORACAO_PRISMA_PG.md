@@ -44,3 +44,4 @@ const atleta = result.rows[0];
 3. Refatorar `cardController.ts`
 4. Testar no Vercel
 
+

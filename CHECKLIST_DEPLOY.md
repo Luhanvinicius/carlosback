@@ -96,3 +96,4 @@ Depois que o backend estiver deployado:
 2. **Atualizar CORS** no backend com a URL do frontend
 3. **Redeploy do backend**
 
+
