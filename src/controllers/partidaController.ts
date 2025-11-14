@@ -1,6 +1,7 @@
 // src/controllers/partidaController.ts
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client"; // ⬅️ removido "Prisma"
+import { query } from "../db";
+import { v4 as uuidv4 } from "uuid";
 import { createCanvas, loadImage, registerFont } from "canvas";
 import axios from "axios";
 import path from "path";
