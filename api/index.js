@@ -17,6 +17,17 @@ function getCorsHeaders(origin) {
 
 // Wrapper para adicionar CORS em TODAS as respostas
 const handler = async (event, context) => {
+  // Log detalhado do evento recebido para debug
+  console.log('[Handler] Event received:', JSON.stringify({
+    httpMethod: event.httpMethod,
+    path: event.path,
+    url: event.url,
+    method: event.method,
+    req: event.req ? { method: event.req.method, url: event.req.url } : null,
+    headers: event.headers ? Object.keys(event.headers) : null,
+    body: typeof event.body === 'string' ? event.body.substring(0, 100) : event.body
+  }, null, 2));
+  
   // Pega origem da requisição (prioriza várias fontes)
   const origin = event.headers?.origin 
     || event.headers?.Origin 
@@ -24,10 +35,20 @@ const handler = async (event, context) => {
     || event.headers?.['X-Forwarded-Origin']
     || '*';
   
-  const method = event.httpMethod || event.request?.method || event.method || 'GET';
-  const path = event.path || event.url || '/';
+  // Vercel usa diferentes formatos - tenta vários
+  const method = event.httpMethod 
+    || event.request?.method 
+    || (event.req && event.req.method)
+    || event.method 
+    || 'GET';
   
-  console.log(`[Handler] ${method} ${path} - Origin: ${origin}`);
+  // O path pode vir de várias fontes no Vercel
+  const path = event.path 
+    || event.url
+    || (event.req && event.req.url)
+    || '/';
+  
+  console.log(`[Handler] Detected: method=${method}, path=${path}, origin=${origin}`);
   
   // Headers CORS que SERÃO adicionados em TODAS as respostas
   const corsHeaders = getCorsHeaders(origin);
