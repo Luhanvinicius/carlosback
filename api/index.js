@@ -44,20 +44,20 @@ const handler = async (event, context) => {
   
   // Processa requisições normais
   try {
-    // Ajusta o path do evento para o serverless-http
-    // O Vercel usa 'path' ou podemos usar o path do query
-    const requestPath = event.path || event.url || (event.query ? Object.keys(event.query)[0] : '/');
-    
-    // Cria um novo evento com path ajustado se necessário
+    // Cria evento ajustado para o serverless-http
+    // O serverless-http precisa de httpMethod e path explícitos
     const adjustedEvent = {
       ...event,
-      path: requestPath,
+      httpMethod: method,
+      path: path,
       requestContext: event.requestContext || {
-        path: requestPath,
+        path: path,
         httpMethod: method,
         requestId: context?.requestId || context?.awsRequestId || 'vercel-request'
       }
     };
+    
+    console.log(`[Handler] Adjusted event: httpMethod=${adjustedEvent.httpMethod}, path=${adjustedEvent.path}`);
     
     const result = await serverless(app, {
       binary: ['image/*', 'application/pdf'],
