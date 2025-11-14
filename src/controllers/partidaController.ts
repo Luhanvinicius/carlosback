@@ -354,40 +354,30 @@ export async function buscarUltimosConfrontosFormatados(partidaId: string): Prom
 
   const { data, atleta1Id, atleta2Id, atleta3Id, atleta4Id } = partidaAtual;
 
-  // Monta AND respeitando null vs string (simples x duplas)
-  const andIgual: any[] = [{ atleta1Id }, { atleta2Id }];
-  if (atleta3Id === null) andIgual.push({ atleta3Id: null });
-  else if (typeof atleta3Id === "string") andIgual.push({ atleta3Id });
-  if (atleta4Id === null) andIgual.push({ atleta4Id: null });
-  else if (typeof atleta4Id === "string") andIgual.push({ atleta4Id });
-
-  const andInvertido: any[] = [];
-  // atleta1 ↔ atleta3
-  if (atleta3Id === null) andInvertido.push({ atleta1Id: null });
-  else if (typeof atleta3Id === "string") andInvertido.push({ atleta1Id: atleta3Id });
-  // atleta2 ↔ atleta4
-  if (atleta4Id === null) andInvertido.push({ atleta2Id: null });
-  else if (typeof atleta4Id === "string") andInvertido.push({ atleta2Id: atleta4Id });
-  // atleta3 ↔ atleta1
-  andInvertido.push({ atleta3Id: atleta1Id });
-  // atleta4 ↔ atleta2
-  andInvertido.push({ atleta4Id: atleta2Id });
-
-  const confrontos = await prisma.partida.findMany({
-    where: {
-      id: { not: partidaId },
-      data: { lt: data },
-      OR: [{ AND: andIgual }, { AND: andInvertido }],
-    },
-    orderBy: { data: "desc" },
-    take: 3,
-    include: {
-      atleta1: true,
-      atleta2: true,
-      atleta3: true,
-      atleta4: true,
-    },
-  });
+  // Simplificar busca - buscar partidas anteriores com os mesmos atletas
+  const atletasIds = [atleta1Id, atleta2Id, atleta3Id, atleta4Id].filter((id): id is string => typeof id === "string");
+  const result = await query(
+    `SELECT p.*, 
+     a1.nome as "atleta1Nome", a2.nome as "atleta2Nome",
+     a3.nome as "atleta3Nome", a4.nome as "atleta4Nome"
+     FROM "Partida" p
+     LEFT JOIN "Atleta" a1 ON p."atleta1Id" = a1.id
+     LEFT JOIN "Atleta" a2 ON p."atleta2Id" = a2.id
+     LEFT JOIN "Atleta" a3 ON p."atleta3Id" = a3.id
+     LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
+     WHERE p.id != $1 AND p.data < $2
+     AND (p."atleta1Id" = ANY($3::uuid[]) OR p."atleta2Id" = ANY($3::uuid[]))
+     ORDER BY p.data DESC
+     LIMIT 3`,
+    [partidaId, data, atletasIds]
+  );
+  const confrontos = result.rows.map((row: any) => ({
+    ...row,
+    atleta1: row.atleta1Nome ? { nome: row.atleta1Nome } : null,
+    atleta2: row.atleta2Nome ? { nome: row.atleta2Nome } : null,
+    atleta3: row.atleta3Nome ? { nome: row.atleta3Nome } : null,
+    atleta4: row.atleta4Nome ? { nome: row.atleta4Nome } : null,
+  }));
 
   return confrontos.map((c: (typeof confrontos)[number]) => {
     const dataFormatada = format(c.data, "dd/MM - HH:mm", { locale: ptBR });
