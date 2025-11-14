@@ -1,38 +1,82 @@
-import { Router } from 'express';
-import { criarAtleta, listarAtletas, listarAtletasPaginados, atualizarAtleta, alterarFotoAtleta, verificarAtletaUsuario} from '../controllers/atletaController';
-import { authenticateToken } from '../middleware/authMiddleware';
-import { upload } from '../config/multerConfig';
-import { requireRole } from '../middleware/roleMiddleware';
-import { autorizaEdicaoAtleta } from '../middleware/autorizaEdicaoAtleta';
+// src/routes/atletaRoutes.ts
+import { Router } from "express";
+import {
+  criarAtleta,
+  listarAtletas,
+  listarAtletasPaginados,
+  atualizarAtleta,
+  alterarFotoAtleta,
+  verificarAtletaUsuario,
+} from "../controllers/atletaController";
+import { authenticateToken } from "../middleware/authMiddleware";
+import { upload } from "../config/multerConfig";
+import { requireRole } from "../middleware/roleMiddleware";
+import { autorizaEdicaoAtleta } from "../middleware/autorizaEdicaoAtleta";
 
-console.log('autorizaEdicaoAtleta', typeof autorizaEdicaoAtleta);
 const router = Router();
 
- router.post('/criarAtleta', authenticateToken, upload.single('foto'), criarAtleta);
+/**
+ * IMPORTANTE p/ BASIC:
+ * - authenticateToken já suporta BASIC/JWT e injeta req.usuario
+ * - requireRole/autorizaEdicaoAtleta DEVEM ler req.usuario (sem decodificar JWT)
+ */
 
- router.get(
-  '/listarAtletas',
+// ---------- Criar atleta ----------
+router.post(
+  "/criar",
   authenticateToken,
-  requireRole('ADMIN','USER'), // ← apenas administradores podem listar usuários
-  listarAtletas); 
+  upload.single("foto"),
+  criarAtleta
+);
+// alias antigo
+router.post(
+  "/criarAtleta",
+  authenticateToken,
+  upload.single("foto"),
+  criarAtleta
+);
 
- router.put('/altera/:id', 
-    authenticateToken, 
-    autorizaEdicaoAtleta, 
-    atualizarAtleta); 
+// ---------- Listagens ----------
+router.get(
+  "/listarAtletas",
+  authenticateToken,
+  requireRole("ADMIN", "USER"),
+  listarAtletas
+);
 
-  router.put('/alterafoto/:id/foto',
+router.get(
+  "/listarAtletasPaginados",
+  authenticateToken,
+  requireRole("ADMIN", "USER"),
+  listarAtletasPaginados
+);
+
+// ---------- Atualizar atleta ----------
+router.put(
+  "/altera/:id",
   authenticateToken,
   autorizaEdicaoAtleta,
-  upload.single('foto'),
-  alterarFotoAtleta);
+  atualizarAtleta
+);
 
-   router.get(
-  '/listarAtletasPaginados',
+// ---------- Atualizar foto ----------
+router.post(
+  "/:id/foto",
   authenticateToken,
-  requireRole('ADMIN','USER'), // ← apenas administradores podem listar usuários
-  listarAtletasPaginados); 
+  autorizaEdicaoAtleta,
+  upload.single("foto"),
+  alterarFotoAtleta
+);
+// alias antigo
+router.put(
+  "/alterafoto/:id/foto",
+  authenticateToken,
+  autorizaEdicaoAtleta,
+  upload.single("foto"),
+  alterarFotoAtleta
+);
 
-  router.get('/me/atleta', authenticateToken, verificarAtletaUsuario); // ← nova rota
+// ---------- Atleta do usuário logado ----------
+router.get("/me/atleta", authenticateToken, verificarAtletaUsuario);
 
 export default router;

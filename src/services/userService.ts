@@ -4,23 +4,35 @@ import bcrypt from 'bcryptjs';
 
  const prisma = new PrismaClient();
 
-/* export const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
-}); */
+export const createUser = async (
+  name: string,
+  email: string,
+  password: string
+) => {
+  if (!name || !email || !password) {
+    throw new Error("name, email e password são obrigatórios");
+  }
 
-export const createUser = async (name: string, email: string) => {
-  return await prisma.user.create({
-    data: { name, email },
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) {
+    throw new Error("E-mail já cadastrado");
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+
+  return prisma.user.create({
+    data: { name, email, password: hash },
+    // nunca retorne o password
+    select: { id: true, name: true, email: true, role: true },
   });
 };
-
 
 
 export const getAllUsers = async () => {
   return await prisma.user.findMany();
 };
 
-export const atualizarUsuario = async (id: number, dados: { name?: string; password?: string }) => {
+export const atualizarUsuario = async (id: string, dados: { name?: string; password?: string }) => {
   const dadosAtualizados: any = {};
 
   if (dados.name) dadosAtualizados.name = dados.name;
@@ -34,7 +46,7 @@ export const atualizarUsuario = async (id: number, dados: { name?: string; passw
   });
 };
 
-export const getUsuarioById = async (id: number) => {
+export const getUsuarioById = async (id: string) => {
   return prisma.user.findUnique({
     where: { id },
     select: {

@@ -1,6 +1,18 @@
 // tsconfig.build.json
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "module": "CommonJS",
+    "target": "ES2020",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "noEmitOnError": true
+  },
   "include": ["src/**/*.ts"],
-  "exclude": ["api", "node_modules", "dist"]
+  "exclude": ["api", "node_modules", "dist", "**/*.test.ts"]
 }

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "buildCommand": "npm install && npm run build",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 1024
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.ts"
+    }
+  ]
+}

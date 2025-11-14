@@ -1,26 +1,38 @@
-import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import * as userService from '../services/userService';
+// src/controllers/userController.ts
+import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import * as userService from "../services/userService";
 
-
-export const create = async (req: Request, res: Response) => {
+// cria usuário (mantive assinatura do seu service)
+export const create = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email } = req.body;
-    const user = await userService.createUser(name, email);
+    const { name, email, password} = req.body;
+    const user = await userService.createUser(name, email,password);
     res.status(201).json(user);
+    return;
   } catch (error) {
-    res.status(400).json({ error: 'Erro ao criar usuário', details: error });
+    res.status(400).json({ error: "Erro ao criar usuário", details: error });
+    return;
   }
 };
 
-export const list = async (_: Request, res: Response) => {
-  const users = await userService.getAllUsers();
-  res.json(users);
+export const list = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await userService.getAllUsers();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao listar usuários" });
+  }
 };
 
+export const atualizarPerfil = async (req: Request, res: Response): Promise<void> => {
+  const usuarioId = req.usuario?.id; // UUID (string)
 
-export const atualizarPerfil = async (req: Request, res: Response) => {
-  const usuarioId = req.usuario?.id;
+  if (!usuarioId || typeof usuarioId !== "string") {
+    res.status(401).json({ mensagem: "Usuário não autenticado" });
+    return;
+  }
+
   const { name, password } = req.body;
 
   try {
@@ -33,27 +45,36 @@ export const atualizarPerfil = async (req: Request, res: Response) => {
         email: usuario.email,
         role: usuario.role,
       },
-      process.env.JWT_SECRET!,
-      { expiresIn: '1d' }
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1d" }
     );
 
-    return res.json({ mensagem: 'Perfil atualizado com sucesso', token: novoToken });
+    res.json({ mensagem: "Perfil atualizado com sucesso", token: novoToken });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ mensagem: 'Erro ao atualizar perfil' });
+    res.status(500).json({ mensagem: "Erro ao atualizar perfil" });
   }
 };
 
-export const getUsuarioLogado = async (req: Request, res: Response) => {
+export const getUsuarioLogado = async (req: Request, res: Response): Promise<void> => {
   try {
     const usuarioId = req.usuario?.id;
+
+    if (!usuarioId || typeof usuarioId !== "string") {
+      res.status(401).json({ mensagem: "Usuário não autenticado" });
+      return;
+    }
+
     const usuario = await userService.getUsuarioById(usuarioId);
 
-    if (!usuario) return res.status(404).json({ mensagem: 'Usuário não encontrado' });
+    if (!usuario) {
+      res.status(404).json({ mensagem: "Usuário não encontrado" });
+      return;
+    }
 
-    return res.json(usuario);
+    res.json(usuario);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ mensagem: 'Erro ao buscar usuário' });
+    res.status(500).json({ mensagem: "Erro ao buscar usuário" });
   }
 };

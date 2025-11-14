@@ -1,22 +1,44 @@
-import { Request, Response } from 'express';
-import * as authService from '../services/authService';
+// src/controllers/authController.ts
+import type { RequestHandler } from "express";
+import * as authService from "../services/authService";
 
-export const register = async (req: Request, res: Response) => {
+export const register: RequestHandler = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const user = await authService.register(name, email, password, role);
-    res.status(201).json({ id: user.id, name: user.name, email: user.email, role: user.role });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const { user, token } = await authService.register(name, email, password, role);
+
+    res.status(201).json({
+      token,
+      user, // { id, name, email, role }
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message ?? "Erro ao registrar" });
   }
 };
 
-/* export const login = async (req: Request, res: Response) => {
+export const login: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = await authService.login(email, password);
-    res.json(result);
-  } catch (error: any) {
-    res.status(401).json({ error: error.message, teste: "teste" });
+    const { user, token } = await authService.login(email, password);
+
+    res.json({
+      token,
+      user, // { id, name, email, role }
+    });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message ?? "Credenciais inválidas" });
   }
-}; */
+};
+
+export const me: RequestHandler = async (req, res) => {
+  try {
+    const usuario = (req as any).usuario;
+    if (!usuario?.id) {
+      res.status(401).json({ error: "Não autenticado" });
+      return;
+    }
+    res.json(usuario); // { id, name, email, role }
+  } catch {
+    res.status(500).json({ error: "Erro ao obter usuário" });
+  }
+};

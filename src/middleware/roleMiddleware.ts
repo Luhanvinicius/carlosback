@@ -1,14 +1,30 @@
-// roleMiddleware.ts
-import { Request, Response, NextFunction } from 'express';
+// src/middleware/roleMiddleware.ts
+import { Request, Response, NextFunction, RequestHandler } from "express";
 
-export const requireRole = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const usuario = (req as any).usuario;
+// Pode receber tanto string quanto enum do Prisma
+export type Role = "ADMIN" | "USER" | string;
 
-    if (!usuario || !roles.includes(usuario.role)) {
-      return res.status(403).json({ mensagem: 'Acesso negado. Permissão insuficiente.' });
+export const requireRole = (...roles: Role[]): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const role = req.usuario?.role;
+
+    // Sem usuário (não autenticado)
+    if (!role) {
+      res.status(401).json({ mensagem: "Usuário não autenticado" });
+      return;
+    }
+
+    // Normaliza para maiúsculas (aceita "admin", "ADMIN", etc.)
+    const userRole = String(role).toUpperCase();
+    const allowedRoles = roles.map(r => String(r).toUpperCase());
+
+    // Sem permissão
+    if (!allowedRoles.includes(userRole)) {
+      res.status(403).json({ mensagem: "Acesso negado. Permissão insuficiente." });
+      return;
     }
 
     next();
   };
 };
+

@@ -1,21 +1,20 @@
 {
   "name": "app-backend",
   "version": "1.0.0",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "node dist/server.js",
-    "postinstall": "prisma generate"
-  },
+  "type": "commonjs",
+  "main": "dist/server.js",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "generate": "prisma generate",
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma",    
+    "prisma:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
+    "postbuild": "node scripts/copy-assets.mjs"
+  },
   "dependencies": {
     "@prisma/client": "^6.11.1",
     "axios": "^1.11.0",
@@ -23,28 +22,23 @@
     "canvas": "^3.1.2",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
-    "dotenv": "^17.0.0",
+    "dotenv": "^16.4.5",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2", 
+    "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.1",
     "serverless-http": "^3.2.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@types/axios": "^0.9.36",
+    "@types/axios": "^0.14.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
-    "@types/node": "^24.0.7",
-    "@types/react": "^19.1.8",
-    "@types/uuid": "^10.0.0",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
+    "@types/node": "^20.14.11",
     "prisma": "^6.11.1",
-    "tailwindcss": "^4.1.11",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.6.3"
   }
 }

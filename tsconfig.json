@@ -1,15 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
+    "target": "ES2020",                        // mais moderno, compatível com Node 20
+    "module": "CommonJS",                      // coerente com package.json
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["node"],
     "skipLibCheck": true,
-    "moduleResolution": "node"
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,                 // facilita importar JSON se precisar
+    "noEmitOnError": true,                     // evita gerar JS se der erro de compilação
+    "sourceMap": false                         // mapas de fonte não são úteis no provedor
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

@@ -135,7 +135,8 @@ export const gerarCardPartida = async (req: Request, res: Response) => {
       include: { atleta1: true, atleta2: true, atleta3: true, atleta4: true },
     });
     if (!partida) {
-      return res.status(404).json({ error: "Partida não encontrada" });
+       res.status(404).json({ error: "Partida não encontrada" });
+      return       
     }
 
     const canvas = createCanvas(WIDTH, HEIGHT);
