@@ -76,35 +76,8 @@ const handler = async (event, context) => {
   
   // Processa requisições normais
   try {
-    // Se o Vercel passou req/res diretamente, usa o serverless-http diretamente
-    if (event.req && event.res) {
-      console.log('[Handler] Formato Vercel direto (req/res) detectado');
-      const result = await new Promise((resolve, reject) => {
-        serverless(app, {
-          binary: ['image/*', 'application/pdf']
-        })(event.req, event.res, (err) => {
-          if (err) reject(err);
-          // O serverless-http manipula req/res diretamente, então não retorna nada
-          // Mas precisamos retornar uma resposta de sucesso
-          resolve({
-            statusCode: event.res.statusCode || 200,
-            headers: event.res.getHeaders ? event.res.getHeaders() : {},
-            body: ''
-          });
-        });
-      });
-      
-      // Se o res já foi enviado, não retorna nada
-      if (event.res.headersSent) {
-        return;
-      }
-      
-      return result;
-    }
-    
-    // Caso contrário, usa formato AWS Lambda
     // Cria evento ajustado para o serverless-http
-    // O serverless-http precisa de httpMethod e path explícitos
+    // O serverless-http precisa de httpMethod e path explícitos no formato AWS Lambda
     const adjustedEvent = {
       ...event,
       httpMethod: method,
@@ -134,9 +107,13 @@ const handler = async (event, context) => {
             req.originalUrl += `?${query}`;
           }
         }
-        // Preserva o método HTTP
+        // Preserva o método HTTP - CRÍTICO para evitar 405
         if (evt.httpMethod) {
           req.method = evt.httpMethod;
+        }
+        // Preserva o método do evento original se não tiver httpMethod
+        if (!evt.httpMethod && method) {
+          req.method = method;
         }
       }
     })(adjustedEvent, context);
