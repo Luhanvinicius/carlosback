@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
 // type StringValue from ms é apenas string
 import { query } from "../db";
+import { v4 as uuidv4 } from "uuid";
 
 type Role = "ADMIN" | "USER";
 
@@ -45,7 +46,8 @@ export const register = async (
   }
 
   const emailNorm = normalizeEmail(email);
-  const exists = await prisma.user.findUnique({ where: { email: emailNorm } });
+  const existsResult = await query('SELECT id FROM "User" WHERE email = $1', [emailNorm]);
+  const exists = existsResult.rows[0];
   if (exists) {
     // mensagem neutra para evitar enumeração de contas
     throw new Error("Não foi possível criar a conta");
@@ -54,10 +56,16 @@ export const register = async (
   const hashed = await bcrypt.hash(password, 12);
   const role = normalizeRole(roleInput);
 
-  const user = await prisma.user.create({
-    data: { name, email: emailNorm, password: hashed, role },
-    select: { id: true, name: true, email: true, role: true }, // nunca retorne password
-  });
+  const userId = uuidv4();
+  await query(
+    'INSERT INTO "User" (id, name, email, password, role, "createdAt") VALUES ($1, $2, $3, $4, $5, NOW())',
+    [userId, name, emailNorm, hashed, role]
+  );
+  const userResult = await query(
+    'SELECT id, name, email, role FROM "User" WHERE id = $1',
+    [userId]
+  );
+  const user = userResult.rows[0];
 
   // opcional: já retornar token para logar após cadastro
   const payload = { id: user.id, name: user.name, email: user.email, role: user.role as Role };
@@ -73,10 +81,11 @@ export const login = async (email: string, password: string) => {
   }
 
   const emailNorm = normalizeEmail(email);
-  const user = await prisma.user.findUnique({
-    where: { email: emailNorm },
-    select: { id: true, name: true, email: true, role: true, password: true },
-  });
+  const userResult = await query(
+    'SELECT id, name, email, role, password FROM "User" WHERE email = $1',
+    [emailNorm]
+  );
+  const user = userResult.rows[0];
 
   // mensagem neutra
   if (!user || !user.password) {

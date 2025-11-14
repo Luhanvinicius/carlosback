@@ -13,16 +13,11 @@ export async function buscarUltimosConfrontosFormatados(
   limite = 5
 ): Promise<string[]> {
   // 1) Buscar a partida original para saber quem são os times
-  const partida = await prisma.partida.findUnique({
-    where: { id: partidaId },
-    select: {
-      atleta1Id: true,
-      atleta2Id: true,
-      atleta3Id: true,
-      atleta4Id: true,
-      data: true,
-    },
-  });
+  const partidaResult = await query(
+    'SELECT "atleta1Id", "atleta2Id", "atleta3Id", "atleta4Id", data FROM "Partida" WHERE id = $1',
+    [partidaId]
+  );
+  const partida = partidaResult.rows[0];
 
   if (!partida) return [];
 
@@ -55,41 +50,38 @@ export async function buscarUltimosConfrontosFormatados(
   };
 
   // 2) Buscar últimas partidas onde times foram os mesmos (independente da ordem)
-  const confrontos = await prisma.partida.findMany({
-    where: {
-      id: { not: partidaId },
-      data: { lt: partida.data }, // só confrontos anteriores
-      OR: [
-        // timeA como 1/2 e timeB como 3/4
-        {
-          AND: [
-            { atleta1Id: { in: timeA } },
-            { atleta2Id: { in: timeA } },
-            ...condNullable("atleta3Id", timeBIds, timeBHasNull),
-            ...condNullable("atleta4Id", timeBIds, timeBHasNull),
-          ],
-        },
-        // timeB como 1/2 e timeA como 3/4 (invertido)
-        {
-          AND: [
-            { atleta1Id: { in: timeBIds.length ? timeBIds : ["__never__"] } }, // se vazio, in "impossível"
-            { atleta2Id: { in: timeBIds.length ? timeBIds : ["__never__"] } },
-            // timeA vai para 3/4; aqui usamos {in} direto
-            { atleta3Id: { in: timeA } },
-            { atleta4Id: { in: timeA } },
-          ],
-        },
-      ],
-    },
-    include: {
-      atleta1: { select: { nome: true } },
-      atleta2: { select: { nome: true } },
-      atleta3: { select: { nome: true } },
-      atleta4: { select: { nome: true } },
-    },
-    orderBy: { data: "desc" },
-    take: limite,
-  });
+  // SQL simplificado - buscar partidas anteriores com os mesmos times
+  let sql = `
+    SELECT p.*, 
+           a1.nome as "atleta1Nome", 
+           a2.nome as "atleta2Nome",
+           a3.nome as "atleta3Nome", 
+           a4.nome as "atleta4Nome"
+    FROM "Partida" p
+    LEFT JOIN "Atleta" a1 ON p."atleta1Id" = a1.id
+    LEFT JOIN "Atleta" a2 ON p."atleta2Id" = a2.id
+    LEFT JOIN "Atleta" a3 ON p."atleta3Id" = a3.id
+    LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
+    WHERE p.id != $1 
+      AND p.data < $2
+      AND (
+        (p."atleta1Id" = ANY($3::uuid[]) AND p."atleta2Id" = ANY($3::uuid[]))
+        OR (p."atleta1Id" = ANY($4::uuid[]) AND p."atleta2Id" = ANY($4::uuid[]) AND $5::uuid[] && ARRAY[p."atleta3Id", p."atleta4Id"])
+      )
+    ORDER BY p.data DESC
+    LIMIT $6
+  `;
+  
+  const timeBArray = timeBIds.length > 0 ? timeBIds : ['00000000-0000-0000-0000-000000000000'::uuid];
+  const confrontosResult = await query(sql, [
+    partidaId,
+    partida.data,
+    timeA,
+    timeBArray,
+    timeA,
+    limite
+  ]);
+  const confrontos = confrontosResult.rows;
 
   // 3) Formatar como strings (ex.: "João/Maria 6x4 7x5 Pedro/Ana - 12/05/2024")
   const linhas = confrontos.map((p: (typeof confrontos)[number]) => {
