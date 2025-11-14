@@ -72,7 +72,7 @@ export async function buscarUltimosConfrontosFormatados(
     LIMIT $6
   `;
   
-  const timeBArray = timeBIds.length > 0 ? timeBIds : ['00000000-0000-0000-0000-000000000000'::uuid];
+  const timeBArray = timeBIds.length > 0 ? timeBIds : [];
   const confrontosResult = await query(sql, [
     partidaId,
     partida.data,
