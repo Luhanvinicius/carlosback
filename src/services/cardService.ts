@@ -1,6 +1,5 @@
 // src/services/cardService.ts
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { query } from "../db";
 
 /**
  * Busca últimos confrontos diretos entre os times da partida informada

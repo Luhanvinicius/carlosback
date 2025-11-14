@@ -2,12 +2,7 @@
 import bcrypt from "bcryptjs";
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
 // type StringValue from ms é apenas string
-import { PrismaClient } from "@prisma/client";
-
-// Singleton do Prisma (evita múltiplas conexões em dev/hot-reload)
-const globalForPrisma = global as unknown as { prisma?: PrismaClient };
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { query } from "../db";
 
 type Role = "ADMIN" | "USER";
 

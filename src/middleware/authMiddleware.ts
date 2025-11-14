@@ -2,20 +2,11 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
 import type { VerifyErrors, JwtPayload } from "jsonwebtoken";
+import { query } from "../db";
 
 const AUTH_MODE = (process.env.AUTH_MODE || "JWT").toUpperCase();
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// Prisma singleton (evita múltiplas conexões em dev/serverless)
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-export const prisma: PrismaClient =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 function setNoStore(res: Response) {
   res.setHeader("Cache-Control", "no-store");
@@ -46,7 +37,8 @@ const authBasic: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const result = await query('SELECT * FROM "User" WHERE email = $1', [email]);
+    const user = result.rows[0];
     if (!user) {
       res.status(401).json({ mensagem: "Usuário/senha inválidos" });
       return;

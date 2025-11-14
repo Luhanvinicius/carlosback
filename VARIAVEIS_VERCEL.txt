@@ -1,0 +1,14 @@
+DATABASE_URL
+Cole aqui a URL completa do seu PostgreSQL
+Exemplo: postgresql://user:password@host.neon.tech/database?sslmode=require
+
+AUTH_MODE
+BASIC
+
+CORS_ORIGIN
+*
+(Atualize depois com a URL do frontend)
+
+NODE_ENV
+production
+

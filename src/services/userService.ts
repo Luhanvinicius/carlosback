@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { query } from '../db';
 import bcrypt from 'bcryptjs';
-
-
- const prisma = new PrismaClient();
+import { v4 as uuidv4 } from 'uuid';
 
 export const createUser = async (
   name: string,
@@ -13,47 +11,63 @@ export const createUser = async (
     throw new Error("name, email e password são obrigatórios");
   }
 
-  const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) {
+  const exists = await query('SELECT id FROM "User" WHERE email = $1', [email]);
+  if (exists.rows.length > 0) {
     throw new Error("E-mail já cadastrado");
   }
 
   const hash = await bcrypt.hash(password, 12);
+  const id = uuidv4();
 
-  return prisma.user.create({
-    data: { name, email, password: hash },
-    // nunca retorne o password
-    select: { id: true, name: true, email: true, role: true },
-  });
+  await query(
+    'INSERT INTO "User" (id, name, email, password, role, "createdAt") VALUES ($1, $2, $3, $4, $5, NOW())',
+    [id, name, email, hash, 'USER']
+  );
+
+  const result = await query(
+    'SELECT id, name, email, role FROM "User" WHERE id = $1',
+    [id]
+  );
+  return result.rows[0];
 };
 
-
 export const getAllUsers = async () => {
-  return await prisma.user.findMany();
+  const result = await query('SELECT * FROM "User"', []);
+  return result.rows;
 };
 
 export const atualizarUsuario = async (id: string, dados: { name?: string; password?: string }) => {
-  const dadosAtualizados: any = {};
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
 
-  if (dados.name) dadosAtualizados.name = dados.name;
+  if (dados.name) {
+    updates.push(`name = $${paramIndex++}`);
+    values.push(dados.name);
+  }
   if (dados.password) {
-    dadosAtualizados.password = await bcrypt.hash(dados.password, 10);
+    updates.push(`password = $${paramIndex++}`);
+    values.push(await bcrypt.hash(dados.password, 10));
   }
 
-  return prisma.user.update({
-    where: { id: id },
-    data: dadosAtualizados,
-  });
+  if (updates.length === 0) {
+    return null;
+  }
+
+  values.push(id);
+  await query(
+    `UPDATE "User" SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+    values
+  );
+
+  const result = await query('SELECT * FROM "User" WHERE id = $1', [id]);
+  return result.rows[0];
 };
 
 export const getUsuarioById = async (id: string) => {
-  return prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-    },
-  });
+  const result = await query(
+    'SELECT id, name, email, role FROM "User" WHERE id = $1',
+    [id]
+  );
+  return result.rows[0] || null;
 };

@@ -1,9 +1,9 @@
 import { RequestHandler } from "express";
-import { PrismaClient } from "@prisma/client";
+import { query } from "../db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
+// Prisma removido - usando query direto
 const AUTH_MODE = (process.env.AUTH_MODE || "JWT").toUpperCase();
 
 function setNoStore(res: any) {
@@ -22,7 +22,8 @@ export const login: RequestHandler = async (req, res) => {
       return;
     }
 
-    const usuarioDb = await prisma.user.findUnique({ where: { email } });
+    const result = await query('SELECT * FROM "User" WHERE email = $1', [email]);
+    const usuarioDb = result.rows[0];
     if (!usuarioDb) {
       res.status(401).json({ mensagem: "Usuário não encontrado" });
       return;

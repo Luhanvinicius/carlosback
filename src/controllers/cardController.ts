@@ -2,14 +2,9 @@
 import path from "path";
 import axios from "axios";
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { createCanvas, loadImage, registerFont } from "canvas";
-// Ajuste este import conforme o nome real do arquivo do serviço:
 import { buscarUltimosConfrontosFormatados } from "../services/cardService";
-// Se o seu arquivo é "cardService.ts", troque a linha acima por:
-// import { buscarUltimosConfrontosFormatados } from "../services/cardService";
-
-const prisma = new PrismaClient();
+import { query } from "../db";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;

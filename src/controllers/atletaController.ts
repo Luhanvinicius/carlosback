@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { query } from "../db";
+import { v4 as uuidv4 } from "uuid";
 
 function calcularIdade(dataNascimento: Date | string): number {
   const nascimento = new Date(dataNascimento);

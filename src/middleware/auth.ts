@@ -1,18 +1,18 @@
 // src/middlewares/auth.ts
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import type { User } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import { query } from "../db";
 
-// Prisma singleton (opcional)
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-export const prisma: PrismaClient =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Tipo User
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  role: string;
+  atletaId?: string | null;
+};
 
 function setNoStore(res: Response) {
   res.setHeader("Cache-Control", "no-store");
@@ -42,7 +42,8 @@ const authBasic: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const result = await query("SELECT * FROM \"User\" WHERE email = $1", [email]);
+    const user = result.rows[0] as User | undefined;
     if (!user) {
       res.status(401).json({ mensagem: "Usuário/senha inválidos" });
       return;

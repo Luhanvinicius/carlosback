@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { query } from '../db';
 
 export const autorizaEdicaoAtleta = async (req: Request, res: Response, next: NextFunction) => {
   const usuario = (req as any).usuario;
@@ -11,9 +9,8 @@ export const autorizaEdicaoAtleta = async (req: Request, res: Response, next: Ne
     console.log(atletaId);
     console.log(usuario);
 
-    const atleta = await prisma.atleta.findUnique({
-      where: { id: atletaId },
-    });
+    const result = await query('SELECT * FROM "Atleta" WHERE id = $1', [atletaId]);
+    const atleta = result.rows[0];
 
     if (!atleta) {
       res.status(404).json({ mensagem: 'Atleta não encontrado.' });
