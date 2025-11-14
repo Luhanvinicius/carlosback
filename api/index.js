@@ -44,9 +44,39 @@ const handler = async (event, context) => {
   
   // Processa requisições normais
   try {
+    // Ajusta o path do evento para o serverless-http
+    // O Vercel usa 'path' ou podemos usar o path do query
+    const requestPath = event.path || event.url || (event.query ? Object.keys(event.query)[0] : '/');
+    
+    // Cria um novo evento com path ajustado se necessário
+    const adjustedEvent = {
+      ...event,
+      path: requestPath,
+      requestContext: event.requestContext || {
+        path: requestPath,
+        httpMethod: method,
+        requestId: context?.requestId || context?.awsRequestId || 'vercel-request'
+      }
+    };
+    
     const result = await serverless(app, {
-      binary: ['image/*', 'application/pdf']
-    })(event, context);
+      binary: ['image/*', 'application/pdf'],
+      request: (req, evt) => {
+        // Preserva o path original
+        if (evt.path) {
+          req.url = evt.path;
+          req.originalUrl = evt.path;
+        }
+        // Preserva query string se existir
+        if (evt.queryStringParameters) {
+          const query = new URLSearchParams(evt.queryStringParameters).toString();
+          if (query && !req.url.includes('?')) {
+            req.url += `?${query}`;
+            req.originalUrl += `?${query}`;
+          }
+        }
+      }
+    })(adjustedEvent, context);
     
     console.log(`[Handler] Resultado: status=${result?.statusCode}, headers=${JSON.stringify(Object.keys(result?.headers || {}))}`);
     
