@@ -4,10 +4,12 @@ const app = require("../dist/app").default || require("../dist/app");
 
 // Wrapper para adicionar CORS em todas as respostas
 const handler = async (event, context) => {
-  // Pega a origem da requisição
+  console.log(`[Handler] ${event.httpMethod} ${event.path} - Origin: ${event.headers?.origin || event.headers?.Origin || 'none'}`);
+  
+  // Pega a origem da requisição (prioriza origin, depois Origin, depois *)
   const origin = event.headers?.origin || event.headers?.Origin || '*';
   
-  // Headers CORS base
+  // Headers CORS base - SEMPRE adicionar
   const corsHeaders = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
@@ -18,7 +20,7 @@ const handler = async (event, context) => {
   
   // Trata OPTIONS preflight ANTES de chamar serverless-http
   if (event.httpMethod === 'OPTIONS') {
-    console.log('[CORS] OPTIONS preflight - respondendo 204');
+    console.log('[CORS Handler] OPTIONS preflight - respondendo 204');
     return {
       statusCode: 204,
       headers: corsHeaders,
@@ -32,11 +34,19 @@ const handler = async (event, context) => {
       binary: ['image/*', 'application/pdf']
     })(event, context);
     
-    // Garante que os headers CORS estejam em TODAS as respostas
-    result.headers = result.headers || {};
-    Object.assign(result.headers, corsHeaders);
+    console.log('[Handler] Result status:', result.statusCode);
     
-    return result;
+    // Garante que os headers CORS estejam em TODAS as respostas
+    // Mescla os headers existentes com os headers CORS
+    const finalHeaders = {
+      ...corsHeaders,
+      ...(result.headers || {})
+    };
+    
+    return {
+      ...result,
+      headers: finalHeaders
+    };
   } catch (error) {
     console.error('[ERROR] Handler error:', error);
     return {
