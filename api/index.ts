@@ -1,6 +1,6 @@
 import serverless from "serverless-http";
-// @ts-ignore - arquivo compilado não tem tipos
-import app from "../dist/src/app";
+// Importar direto do TypeScript - Vercel compila automaticamente
+import app from "../src/app";
 
 const handler = serverless(app as any);
 
