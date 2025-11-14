@@ -356,7 +356,7 @@ export async function buscarUltimosConfrontosFormatados(partidaId: string): Prom
 
   // Simplificar busca - buscar partidas anteriores com os mesmos atletas
   const atletasIds = [atleta1Id, atleta2Id, atleta3Id, atleta4Id].filter((id): id is string => typeof id === "string");
-  const result = await query(
+  const confrontosResult = await query(
     `SELECT p.*, 
      a1.nome as "atleta1Nome", a2.nome as "atleta2Nome",
      a3.nome as "atleta3Nome", a4.nome as "atleta4Nome"
@@ -371,7 +371,7 @@ export async function buscarUltimosConfrontosFormatados(partidaId: string): Prom
      LIMIT 3`,
     [partidaId, data, atletasIds]
   );
-  const confrontos = result.rows.map((row: any) => ({
+  const confrontos = confrontosResult.rows.map((row: any) => ({
     ...row,
     atleta1: row.atleta1Nome ? { nome: row.atleta1Nome } : null,
     atleta2: row.atleta2Nome ? { nome: row.atleta2Nome } : null,
