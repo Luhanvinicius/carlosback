@@ -1,5 +1,5 @@
 // src/app.ts
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction, RequestHandler } from "express";
 // CORS removido - usando middleware manual
 
 import userRoutes from "./routes/userRoutes";
@@ -19,7 +19,7 @@ app.set("trust proxy", true);
 
 // CORS - SEMPRE permitir todas as origens para funcionar no Vercel
 // Middleware CORS DEVE ser o PRIMEIRO middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
+const corsMiddleware: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
   console.log(`[CORS App] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
   // SEMPRE permite a origem da requisição (ou qualquer origem)
@@ -38,7 +38,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
   
   next();
-});
+};
+
+app.use(corsMiddleware);
 
 app.use(express.json());
 
