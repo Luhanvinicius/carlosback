@@ -17,30 +17,27 @@ const app = express();
 // (opcional, se estiver atrás de proxy/CDN)
 app.set("trust proxy", true);
 
-// CORS (ajuste para seus domínios)
-const origins = (process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-// habilita CORS global — precisa vir ANTES das rotas
-// Se CORS_ORIGIN for "*", permite qualquer origem
-const corsOrigin = origins.length && origins[0] === "*" ? true : origins.length ? origins : true;
-
-// Middleware CORS manual - SEMPRE permite todas as origens para funcionar no Vercel
+// CORS - SEMPRE permitir todas as origens para funcionar no Vercel
+// Middleware CORS DEVE ser o PRIMEIRO middleware
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  console.log(`[CORS] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
-  // SEMPRE permite a origem da requisição (ou qualquer origem se não tiver)
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  // SEMPRE permite a origem da requisição
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   res.setHeader("Access-Control-Max-Age", "86400");
   res.setHeader("Access-Control-Allow-Credentials", "false");
   
-  // Responde preflight imediatamente SEM processar a requisição
+  // Responde preflight OPTIONS imediatamente
   if (req.method === "OPTIONS") {
-    console.log("OPTIONS preflight request - respondendo 204");
+    console.log("[CORS] OPTIONS preflight - respondendo 204");
     return res.status(204).end();
   }
   
