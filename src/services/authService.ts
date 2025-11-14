@@ -36,7 +36,7 @@ function getJwtExpires(): number | string {
   }
 
   // Strings compatíveis com ms: "1h", "12h", "1d", "7d"...
-  return v.trim() as StringValue;
+  return v.trim();
 }
 
 export const register = async (
