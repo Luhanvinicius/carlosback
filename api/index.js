@@ -36,17 +36,28 @@ const handler = async (event, context) => {
     || '*';
   
   // Vercel usa diferentes formatos - tenta vários
-  const method = event.httpMethod 
-    || event.request?.method 
-    || (event.req && event.req.method)
-    || event.method 
-    || 'GET';
+  // Vercel Serverless Functions usam req/res diretamente
+  let method = 'GET';
+  let path = '/';
   
-  // O path pode vir de várias fontes no Vercel
-  const path = event.path 
-    || event.url
-    || (event.req && event.req.url)
-    || '/';
+  // Tenta detectar o formato do Vercel
+  if (event.req && event.req.method) {
+    // Formato Vercel direto (req/res)
+    method = event.req.method;
+    path = event.req.url || '/';
+  } else if (event.httpMethod) {
+    // Formato AWS Lambda
+    method = event.httpMethod;
+    path = event.path || event.url || '/';
+  } else if (event.method) {
+    // Formato alternativo
+    method = event.method;
+    path = event.path || event.url || '/';
+  } else if (event.request && event.request.method) {
+    // Formato Cloudflare
+    method = event.request.method;
+    path = event.request.url || '/';
+  }
   
   console.log(`[Handler] Detected: method=${method}, path=${path}, origin=${origin}`);
   
@@ -65,6 +76,33 @@ const handler = async (event, context) => {
   
   // Processa requisições normais
   try {
+    // Se o Vercel passou req/res diretamente, usa o serverless-http diretamente
+    if (event.req && event.res) {
+      console.log('[Handler] Formato Vercel direto (req/res) detectado');
+      const result = await new Promise((resolve, reject) => {
+        serverless(app, {
+          binary: ['image/*', 'application/pdf']
+        })(event.req, event.res, (err) => {
+          if (err) reject(err);
+          // O serverless-http manipula req/res diretamente, então não retorna nada
+          // Mas precisamos retornar uma resposta de sucesso
+          resolve({
+            statusCode: event.res.statusCode || 200,
+            headers: event.res.getHeaders ? event.res.getHeaders() : {},
+            body: ''
+          });
+        });
+      });
+      
+      // Se o res já foi enviado, não retorna nada
+      if (event.res.headersSent) {
+        return;
+      }
+      
+      return result;
+    }
+    
+    // Caso contrário, usa formato AWS Lambda
     // Cria evento ajustado para o serverless-http
     // O serverless-http precisa de httpMethod e path explícitos
     const adjustedEvent = {
@@ -95,6 +133,10 @@ const handler = async (event, context) => {
             req.url += `?${query}`;
             req.originalUrl += `?${query}`;
           }
+        }
+        // Preserva o método HTTP
+        if (evt.httpMethod) {
+          req.method = evt.httpMethod;
         }
       }
     })(adjustedEvent, context);
