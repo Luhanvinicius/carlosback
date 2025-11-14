@@ -27,17 +27,20 @@ const origins = (process.env.CORS_ORIGIN || "")
 // Se CORS_ORIGIN for "*", permite qualquer origem
 const corsOrigin = origins.length && origins[0] === "*" ? true : origins.length ? origins : true;
 
-// Handle preflight requests ANTES do middleware CORS
-app.options("*", (req, res) => {
+// Middleware para adicionar headers CORS em TODAS as respostas (incluindo erros)
+app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (corsOrigin === true || (Array.isArray(corsOrigin) && corsOrigin.includes(origin || "")) || origin === corsOrigin) {
+  if (corsOrigin === true || !origin || (Array.isArray(corsOrigin) && corsOrigin.includes(origin)) || origin === corsOrigin) {
     res.header("Access-Control-Allow-Origin", origin || "*");
-  } else {
-    res.header("Access-Control-Allow-Origin", "*");
   }
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   res.header("Access-Control-Max-Age", "86400");
+  next();
+});
+
+// Handle preflight requests ANTES do middleware CORS
+app.options("*", (req, res) => {
   res.sendStatus(204);
 });
 
