@@ -84,11 +84,11 @@ export async function buscarUltimosConfrontosFormatados(
   const confrontos = confrontosResult.rows;
 
   // 3) Formatar como strings (ex.: "João/Maria 6x4 7x5 Pedro/Ana - 12/05/2024")
-  const linhas = confrontos.map((p: (typeof confrontos)[number]) => {
-    const nomesTimeA = [p.atleta1?.nome, p.atleta2?.nome]
+  const linhas = confrontos.map((p: any) => {
+    const nomesTimeA = [p.atleta1Nome, p.atleta2Nome]
       .filter((s): s is string => Boolean(s))
       .join("/");
-    const nomesTimeB = [p.atleta3?.nome, p.atleta4?.nome]
+    const nomesTimeB = [p.atleta3Nome, p.atleta4Nome]
       .filter((s): s is string => Boolean(s))
       .join("/");
 
