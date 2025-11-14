@@ -1,12 +1,8 @@
 // src/middleware/authMiddleware.ts
 import type { Request, Response, NextFunction, RequestHandler } from "express";
-import jwt from "jsonwebtoken";
+// JWT removido - usando apenas BASIC auth
 import bcrypt from "bcryptjs";
-import type { VerifyErrors, JwtPayload } from "jsonwebtoken";
 import { query } from "../db";
-
-const AUTH_MODE = (process.env.AUTH_MODE || "JWT").toUpperCase();
-const JWT_SECRET = process.env.JWT_SECRET;
 
 function setNoStore(res: Response) {
   res.setHeader("Cache-Control", "no-store");
@@ -68,54 +64,5 @@ const authBasic: RequestHandler = async (req, res, next) => {
   }
 };
 
-// ---------- JWT ----------
-
-const authJwt: RequestHandler = (req, res, next) => {
-  const rawHeader = req.headers.authorization ?? (req.headers as any).Authorization;
-  const token = rawHeader?.startsWith("Bearer ") ? rawHeader.slice(7) : undefined;
-
-  if (!token) {
-    res.status(401).json({ mensagem: "Token não fornecido" });
-    return;
-  }
-  if (!JWT_SECRET) {
-    console.warn("[authMiddleware] JWT_SECRET não definido!");
-    res.status(500).json({ mensagem: "Configuração inválida do servidor (JWT_SECRET ausente)" });
-    return;
-  }
-
-  jwt.verify(
-    token,
-    JWT_SECRET,
-    (err: VerifyErrors | null, decoded: JwtPayload | string | undefined) => {
-      if (err || !decoded) {
-        res.status(403).json({ mensagem: "Token inválido ou expirado" });
-        return;
-      }
-
-      const payload = typeof decoded === "string" ? {} : decoded;
-
-      const rawId = (payload as any).id ?? (payload as any).userId;
-      const id = rawId != null ? String(rawId) : undefined;
-      if (!id) {
-        res.status(401).json({ mensagem: "Token sem id de usuário" });
-        return;
-      }
-
-      (req as any).usuario = {
-        id,
-        name: (payload as any).name ?? "",
-        email: (payload as any).email ?? "",
-        role: (payload as any).role ?? "USER",
-        atletaId: (payload as any).atletaId ?? undefined,
-      };
-
-      setNoStore(res);
-      next();
-    }
-  );
-};
-
-// ---------- Export (comutável) ----------
-export const authenticateToken: RequestHandler =
-  AUTH_MODE === "BASIC" ? authBasic : authJwt;
+// ---------- Export (apenas BASIC) ----------
+export const authenticateToken: RequestHandler = authBasic;
