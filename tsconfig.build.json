@@ -11,7 +11,9 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": false,
-    "noEmitOnError": true
+    "noEmitOnError": false,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["api", "node_modules", "dist", "**/*.test.ts"]
