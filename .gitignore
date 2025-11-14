@@ -15,3 +15,8 @@ pnpm-debug.log*
 
 # Prisma
 .prisma/
+
+# Arquivos grandes
+*.zip
+uploads/
+!scripts/copy-assets.mjs
