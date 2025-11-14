@@ -1,6 +1,6 @@
 // src/app.ts
 import express, { Request, Response, NextFunction } from "express";
-import cors from "cors";
+// CORS removido - usando middleware manual
 
 import userRoutes from "./routes/userRoutes";
 import authRoutes from "./routes/authRoutes";
