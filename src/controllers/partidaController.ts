@@ -9,7 +9,7 @@ import fs from "fs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const prisma = new PrismaClient();
+// Prisma removido - usando query direto
 
 // Registra a fonte (ajuste o caminho se necessário)
 registerFont(path.join(__dirname, "../assets/fonts/OpenSans-Bold.ttf"), {
