@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import bcrypt from "bcryptjs";
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
-import type { StringValue } from "ms";
+// type StringValue from ms é apenas string
 import { PrismaClient } from "@prisma/client";
 
 // Singleton do Prisma (evita múltiplas conexões em dev/hot-reload)
@@ -23,7 +23,7 @@ function getJwtSecret(): Secret {
   if (!s) throw new Error("JWT_SECRET não configurado no servidor");
   return s as Secret;
 }
-function getJwtExpires(): number | StringValue {
+function getJwtExpires(): number | string {
   const v = process.env.JWT_EXPIRES_IN;
 
   if (!v || v.trim() === "") {

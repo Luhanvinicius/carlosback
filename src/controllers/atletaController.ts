@@ -35,7 +35,7 @@ export const criarAtleta = async (req: Request, res: Response): Promise<void> =>
 
     const dataNasc = new Date(dataNascimento);
 
-    const foto = (req.file?.filename ?? null) as string | null;
+    const foto = ((req as any).file?.filename ?? null) as string | null;
     const fotoUrl = foto ? `${req.protocol}://${req.get("host")}/uploads/${foto}` : null;
 
     const novoAtleta = await prisma.atleta.create({
@@ -160,7 +160,7 @@ export const atualizarAtleta = async (req: Request, res: Response): Promise<void
 export const alterarFotoAtleta = async (req: Request, res: Response): Promise<void> => {
   try {
     const atletaId = req.params.id;
-    const novaFoto = req.file?.filename;
+    const novaFoto = (req as any).file?.filename;
 
     if (!novaFoto) {
       res.status(400).json({ mensagem: "Nenhuma foto foi enviada." });
