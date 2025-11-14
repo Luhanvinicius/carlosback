@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "sourceMap": false,
     "noEmitOnError": false,
+    "strict": false,
     "types": ["node"],
     "typeRoots": ["./node_modules/@types"]
   },
