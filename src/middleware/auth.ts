@@ -1,7 +1,6 @@
 // src/middlewares/auth.ts
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { query } from "../db";
 
 // Tipo User
@@ -65,33 +64,10 @@ const authBasic: RequestHandler = async (req, res, next) => {
   }
 };
 
-// ---------- JWT ----------
-function authJwt(secret: string): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const h = req.headers.authorization;
-    if (!h?.startsWith("Bearer ")) {
-      res.status(401).json({ mensagem: "Token ausente" });
-      return;
-    }
-    try {
-      const token = h.slice("Bearer ".length);
-      const payload = jwt.verify(token, secret) as any;
-      (req as any).usuario = payload;
-      setNoStore(res);
-      next();
-    } catch (e) {
-      res.status(401).json({ mensagem: "Token inválido" });
-    }
-  };
-}
-
 // ---------- Seleciona modo ----------
 export function authMiddleware(): RequestHandler {
-  const mode = process.env.AUTH_MODE?.toUpperCase() || "JWT";
-  console.log(mode);
-  if (mode === "BASIC") return authBasic;
-  const secret = process.env.JWT_SECRET || "changeme";
-  return authJwt(secret);
+  // Usa apenas BASIC auth (JWT removido)
+  return authBasic;
 }
 
 // ---------- Helper ----------

@@ -1,6 +1,6 @@
 // src/controllers/userController.ts
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+// JWT removido - usando apenas BASIC auth
 import * as userService from "../services/userService";
 
 // cria usuário (mantive assinatura do seu service)
@@ -38,18 +38,8 @@ export const atualizarPerfil = async (req: Request, res: Response): Promise<void
   try {
     const usuario = await userService.atualizarUsuario(usuarioId, { name, password });
 
-    const novoToken = jwt.sign(
-      {
-        id: usuario.id,
-        name: usuario.name,
-        email: usuario.email,
-        role: usuario.role,
-      },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1d" }
-    );
-
-    res.json({ mensagem: "Perfil atualizado com sucesso", token: novoToken });
+    // Retorna apenas mensagem (sem token JWT - usando apenas BASIC auth)
+    res.json({ mensagem: "Perfil atualizado com sucesso" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensagem: "Erro ao atualizar perfil" });

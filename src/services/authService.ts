@@ -1,7 +1,5 @@
 // src/services/authService.ts
 import bcrypt from "bcryptjs";
-import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
-// type StringValue from ms é apenas string
 import { query } from "../db";
 import { v4 as uuidv4 } from "uuid";
 
@@ -13,26 +11,6 @@ function normalizeRole(input?: string): Role {
 }
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
-}
-function getJwtSecret(): Secret {
-  const s = process.env.JWT_SECRET;
-  if (!s) throw new Error("JWT_SECRET não configurado no servidor");
-  return s as Secret;
-}
-function getJwtExpires(): number | string {
-  const v = process.env.JWT_EXPIRES_IN;
-
-  if (!v || v.trim() === "") {
-    return "1d"; // padrão
-  }
-
-  // Se for só números (ex.: "3600"), retorna como number (segundos)
-  if (/^\d+$/.test(v.trim())) {
-    return Number(v.trim());
-  }
-
-  // Strings compatíveis com ms: "1h", "12h", "1d", "7d"...
-  return v.trim();
 }
 
 export const register = async (
@@ -67,13 +45,8 @@ export const register = async (
   );
   const user = userResult.rows[0];
 
-  // opcional: já retornar token para logar após cadastro
-  const payload = { id: user.id, name: user.name, email: user.email, role: user.role as Role };
-  const expiresIn = getJwtExpires();
-  const signOptions = { expiresIn } as SignOptions;
-  const token = jwt.sign(payload, getJwtSecret(), signOptions);
-
-  return { user, token };
+  // Retorna apenas o usuário (sem token JWT)
+  return { user };
 };
 
 export const login = async (email: string, password: string) => {
@@ -98,11 +71,6 @@ export const login = async (email: string, password: string) => {
     throw new Error("Credenciais inválidas");
   }
 
-  const payload = { id: user.id, name: user.name, email: user.email, role: user.role as Role };
-  const expiresIn = getJwtExpires();
-  const signOptions = { expiresIn } as SignOptions;
-  const token = jwt.sign(payload, getJwtSecret(), signOptions);
-
   const { password: _hidden, ...safe } = user;
-  return { token, user: safe }; // safe = { id, name, email, role }
+  return { user: safe }; // safe = { id, name, email, role } - sem token JWT
 };

@@ -1,10 +1,10 @@
 import { RequestHandler } from "express";
 import { query } from "../db";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+// JWT removido - usando apenas BASIC auth
 
 // Prisma removido - usando query direto
-const AUTH_MODE = (process.env.AUTH_MODE || "JWT").toUpperCase();
+// JWT removido - usando apenas BASIC auth
 
 function setNoStore(res: any) {
   res.setHeader("Cache-Control", "no-store");
@@ -47,24 +47,8 @@ export const login: RequestHandler = async (req, res) => {
 
     setNoStore(res);
 
-    if (AUTH_MODE === "BASIC") {
-      res.json({ token: "basic-mode", usuario });
-      return;
-    }
-
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      res.status(500).json({ mensagem: "JWT_SECRET não configurado no servidor" });
-      return;
-    }
-
-    const token = jwt.sign(
-      { id: usuario.id, nome: usuario.nome, email: usuario.email, role: usuario.role, atletaId: usuario.atletaId ?? undefined },
-      secret,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ token, usuario });
+    // Retorna apenas o usuário (sem token JWT - usando apenas BASIC auth)
+    res.json({ usuario });
     return;
   } catch (error) {
     console.error("login error:", error);
