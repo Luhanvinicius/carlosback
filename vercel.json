@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "npm install --production=false && npm run build",
   "functions": {
     "api/index.ts": {
       "memory": 1024
