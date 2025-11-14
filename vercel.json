@@ -3,7 +3,6 @@
   "buildCommand": "npm install && npm run build",
   "functions": {
     "api/index.ts": {
-      "runtime": "nodejs20",
       "memory": 1024
     }
   },
