@@ -8,10 +8,10 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "prisma:generate": "node -e \"require('child_process').execSync('npx --yes prisma generate --schema=./prisma/schema.prisma', {stdio: 'inherit'})\"",
-    "build": "npm run prisma:generate && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "generate": "prisma generate",
+    "postinstall": "node -e \"require('child_process').execSync('node node_modules/prisma/build/index.js generate --schema=./prisma/schema.prisma', {stdio: 'inherit'})\"",
     "prisma:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
     "postbuild": "node scripts/copy-assets.mjs"
   },
