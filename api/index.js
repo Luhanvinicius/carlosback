@@ -2,24 +2,38 @@
 const serverless = require("serverless-http");
 const app = require("../dist/app").default || require("../dist/app");
 
-// Wrapper para adicionar CORS em todas as respostas
-const handler = async (event, context) => {
-  console.log(`[Handler] ${event.httpMethod} ${event.path} - Origin: ${event.headers?.origin || event.headers?.Origin || 'none'}`);
-  
-  // Pega a origem da requisição (prioriza origin, depois Origin, depois *)
-  const origin = event.headers?.origin || event.headers?.Origin || '*';
-  
-  // Headers CORS base - SEMPRE adicionar
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': origin,
+// Função auxiliar para obter origem da requisição
+function getOrigin(headers) {
+  return headers?.origin || headers?.Origin || headers?.['x-forwarded-origin'] || '*';
+}
+
+// Função auxiliar para obter método HTTP
+function getMethod(event) {
+  return event.httpMethod || event.request?.method || event.method || 'GET';
+}
+
+// Headers CORS base
+function getCorsHeaders(origin) {
+  return {
+    'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept',
     'Access-Control-Max-Age': '86400',
     'Access-Control-Allow-Credentials': 'false'
   };
+}
+
+// Wrapper para adicionar CORS em todas as respostas
+const handler = async (event, context) => {
+  const origin = getOrigin(event.headers);
+  const method = getMethod(event);
+  
+  console.log(`[Handler] ${method} ${event.path || event.url || '/'} - Origin: ${origin}`);
+  
+  const corsHeaders = getCorsHeaders(origin);
   
   // Trata OPTIONS preflight ANTES de chamar serverless-http
-  if (event.httpMethod === 'OPTIONS') {
+  if (method === 'OPTIONS' || method === 'options') {
     console.log('[CORS Handler] OPTIONS preflight - respondendo 204');
     return {
       statusCode: 204,
@@ -31,28 +45,37 @@ const handler = async (event, context) => {
   // Processa requisições normais com serverless-http
   try {
     const result = await serverless(app, {
-      binary: ['image/*', 'application/pdf']
+      binary: ['image/*', 'application/pdf'],
+      request: (req, event) => {
+        // Preserva informações da requisição original
+        if (event.path) req.url = event.path;
+        if (event.queryStringParameters) {
+          const query = new URLSearchParams(event.queryStringParameters).toString();
+          if (query) req.url += `?${query}`;
+        }
+      }
     })(event, context);
     
-    console.log('[Handler] Result status:', result.statusCode);
+    console.log('[Handler] Result status:', result?.statusCode);
     
     // Garante que os headers CORS estejam em TODAS as respostas
-    // Mescla os headers existentes com os headers CORS
     const finalHeaders = {
       ...corsHeaders,
-      ...(result.headers || {})
+      ...(result?.headers || {})
     };
     
+    // Garante que os headers não sejam undefined
     return {
-      ...result,
-      headers: finalHeaders
+      statusCode: result?.statusCode || 200,
+      headers: finalHeaders,
+      body: result?.body || ''
     };
   } catch (error) {
     console.error('[ERROR] Handler error:', error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ error: 'Internal server error', message: error.message })
     };
   }
 };
