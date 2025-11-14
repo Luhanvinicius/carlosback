@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "node_modules/.bin/prisma generate --schema=./prisma/schema.prisma || npx --yes prisma generate --schema=./prisma/schema.prisma && tsc -p tsconfig.build.json",
+    "prisma:generate": "node -e \"require('child_process').execSync('npx --yes prisma generate --schema=./prisma/schema.prisma', {stdio: 'inherit'})\"",
+    "build": "npm run prisma:generate && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
