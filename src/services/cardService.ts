@@ -51,7 +51,7 @@ export async function buscarUltimosConfrontosFormatados(
 
   // 2) Buscar últimas partidas onde times foram os mesmos (independente da ordem)
   // SQL simplificado - buscar partidas anteriores com os mesmos times
-  let sql = `
+  const sql = `
     SELECT p.*, 
            a1.nome as "atleta1Nome", 
            a2.nome as "atleta2Nome",
@@ -64,20 +64,14 @@ export async function buscarUltimosConfrontosFormatados(
     LEFT JOIN "Atleta" a4 ON p."atleta4Id" = a4.id
     WHERE p.id != $1 
       AND p.data < $2
-      AND (
-        (p."atleta1Id" = ANY($3::uuid[]) AND p."atleta2Id" = ANY($3::uuid[]))
-        OR (p."atleta1Id" = ANY($4::uuid[]) AND p."atleta2Id" = ANY($4::uuid[]) AND $5::uuid[] && ARRAY[p."atleta3Id", p."atleta4Id"])
-      )
+      AND (p."atleta1Id" = ANY($3::uuid[]) OR p."atleta2Id" = ANY($3::uuid[]))
     ORDER BY p.data DESC
-    LIMIT $6
+    LIMIT $4
   `;
   
-  const timeBArray = timeBIds.length > 0 ? timeBIds : [];
   const confrontosResult = await query(sql, [
     partidaId,
     partida.data,
-    timeA,
-    timeBArray,
     timeA,
     limite
   ]);
