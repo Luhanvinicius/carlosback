@@ -8,20 +8,17 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "prisma:generate": "node scripts/generate-prisma.js",
-    "build": "npm run prisma:generate && node scripts/build-ts.js",
+    "build": "node scripts/build-ts.js",
     "start": "node dist/server.js",
-    "generate": "prisma generate",
-    "prisma:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
     "postbuild": "node scripts/copy-assets.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1",
-    "prisma": "^6.11.1",
+    "pg": "^8.12.0",
     "@types/node": "^20.14.11",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ms": "^0.7.34",
+    "@types/pg": "^8.11.10",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "canvas": "^3.1.2",
