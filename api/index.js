@@ -4,29 +4,47 @@ const app = require("../dist/app").default || require("../dist/app");
 
 // Wrapper para adicionar CORS em todas as respostas
 const handler = async (event, context) => {
-  const result = await serverless(app, {
-    binary: ['image/*', 'application/pdf']
-  })(event, context);
-  
-  // Adiciona headers CORS em TODAS as respostas
+  // Pega a origem da requisição
   const origin = event.headers?.origin || event.headers?.Origin || '*';
-  result.headers = result.headers || {};
-  result.headers['Access-Control-Allow-Origin'] = origin;
-  result.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
-  result.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
-  result.headers['Access-Control-Max-Age'] = '86400';
-  result.headers['Access-Control-Allow-Credentials'] = 'false';
   
-  // Trata OPTIONS preflight diretamente
+  // Headers CORS base
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Credentials': 'false'
+  };
+  
+  // Trata OPTIONS preflight ANTES de chamar serverless-http
   if (event.httpMethod === 'OPTIONS') {
+    console.log('[CORS] OPTIONS preflight - respondendo 204');
     return {
       statusCode: 204,
-      headers: result.headers,
+      headers: corsHeaders,
       body: ''
     };
   }
   
-  return result;
+  // Processa requisições normais com serverless-http
+  try {
+    const result = await serverless(app, {
+      binary: ['image/*', 'application/pdf']
+    })(event, context);
+    
+    // Garante que os headers CORS estejam em TODAS as respostas
+    result.headers = result.headers || {};
+    Object.assign(result.headers, corsHeaders);
+    
+    return result;
+  } catch (error) {
+    console.error('[ERROR] Handler error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Internal server error' })
+    };
+  }
 };
 
 module.exports = handler;

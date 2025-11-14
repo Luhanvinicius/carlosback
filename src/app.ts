@@ -20,16 +20,11 @@ app.set("trust proxy", true);
 // CORS - SEMPRE permitir todas as origens para funcionar no Vercel
 // Middleware CORS DEVE ser o PRIMEIRO middleware
 app.use((req, res, next) => {
-  console.log(`[CORS] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+  console.log(`[CORS App] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
-  // SEMPRE permite a origem da requisição
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  }
-  
+  // SEMPRE permite a origem da requisição (ou qualquer origem)
+  const origin = req.headers.origin || '*';
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   res.setHeader("Access-Control-Max-Age", "86400");
@@ -37,8 +32,8 @@ app.use((req, res, next) => {
   
   // Responde preflight OPTIONS imediatamente
   if (req.method === "OPTIONS") {
-    console.log("[CORS] OPTIONS preflight - respondendo 204");
-    return res.status(204).end();
+    console.log("[CORS App] OPTIONS preflight - respondendo 204");
+    return res.status(204).send();
   }
   
   next();
