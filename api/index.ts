@@ -1,5 +1,5 @@
 import serverless from "serverless-http";
-// @ts-ignore - Importar do código compilado
+// @ts-ignore - Importar do código compilado (JavaScript)
 const app = require("../dist/app");
 
-module.exports = serverless(app.default || app);
+export default serverless(app.default || app);

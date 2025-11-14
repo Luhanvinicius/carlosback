@@ -5,11 +5,10 @@ import * as authService from "../services/authService";
 export const register: RequestHandler = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const { user, token } = await authService.register(name, email, password, role);
+    const { user } = await authService.register(name, email, password, role);
 
     res.status(201).json({
-      token,
-      user, // { id, name, email, role }
+      user, // { id, name, email, role } - sem token JWT
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message ?? "Erro ao registrar" });
@@ -19,11 +18,10 @@ export const register: RequestHandler = async (req, res) => {
 export const login: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { user, token } = await authService.login(email, password);
+    const { user } = await authService.login(email, password);
 
     res.json({
-      token,
-      user, // { id, name, email, role }
+      user, // { id, name, email, role } - sem token JWT
     });
   } catch (err: any) {
     res.status(401).json({ error: err.message ?? "Credenciais inválidas" });
