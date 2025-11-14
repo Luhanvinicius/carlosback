@@ -37,18 +37,13 @@ export const criarAtleta = async (req: Request, res: Response): Promise<void> =>
     const foto = ((req as any).file?.filename ?? null) as string | null;
     const fotoUrl = foto ? `${req.protocol}://${req.get("host")}/uploads/${foto}` : null;
 
-    const novoAtleta = await prisma.atleta.create({
-      data: {
-        nome,
-        dataNascimento: dataNasc,
-        // Só envia campos opcionais se vierem (evita null em campos não-null)
-        ...(categoria !== undefined && { categoria }),
-        ...(genero !== undefined && { genero }),
-        ...(fone !== undefined && { fone }),
-        ...(fotoUrl !== null && { fotoUrl }),
-        usuarioId, // UUID do usuário logado
-      },
-    });
+    const id = uuidv4();
+    await query(
+      'INSERT INTO "Atleta" (id, nome, "dataNascimento", categoria, genero, fone, "fotoUrl", "usuarioId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
+      [id, nome, dataNasc, categoria || null, genero || null, fone || null, fotoUrl, usuarioId]
+    );
+    const result = await query('SELECT * FROM "Atleta" WHERE id = $1', [id]);
+    const novoAtleta = result.rows[0];
 
     res.status(201).json(novoAtleta);
   } catch (error) {
@@ -65,15 +60,19 @@ export const listarAtletas = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const atletas = await prisma.atleta.findMany({
-      where: usuario.role === "ADMIN" ? {} : { usuarioId: usuario.id },
-      include: {
-        usuario: {
-          select: { name: true, role: true },
-        },
-      },
-      orderBy: { nome: "asc" },
-    });
+    const whereClause = usuario.role === "ADMIN" ? '' : `WHERE "usuarioId" = '${usuario.id}'`;
+    const result = await query(
+      `SELECT a.*, u.name as "usuarioName", u.role as "usuarioRole" 
+       FROM "Atleta" a 
+       LEFT JOIN "User" u ON a."usuarioId" = u.id 
+       ${whereClause}
+       ORDER BY a.nome ASC`,
+      []
+    );
+    const atletas = result.rows.map((row: any) => ({
+      ...row,
+      usuario: row.usuarioName ? { name: row.usuarioName, role: row.usuarioRole } : null
+    }));
 
     // ✅ sem "implicit any": anota o tipo com base no próprio array
     const atletasComIdade = atletas.map((atleta: (typeof atletas)[number]) => ({
@@ -97,15 +96,16 @@ export const listarAtletasPaginados = async (req: Request, res: Response): Promi
     const pagina = parseInt(String(req.query.pagina ?? "1"), 10) || 1;
     const limite = parseInt(String(req.query.limite ?? "10"), 10) || 10;
 
-    const atletas = await prisma.atleta.findMany({
-      where: {
-        nome: { contains: busca, mode: "insensitive" },
-      },
-      skip: (pagina - 1) * limite,
-      take: limite,
-      orderBy: { nome: "asc" },
-      select: { id: true, nome: true, dataNascimento: true },
-    });
+    const offset = (pagina - 1) * limite;
+    const result = await query(
+      `SELECT id, nome, "dataNascimento" 
+       FROM "Atleta" 
+       WHERE nome ILIKE $1 
+       ORDER BY nome ASC 
+       LIMIT $2 OFFSET $3`,
+      [`%${busca}%`, limite, offset]
+    );
+    const atletas = result.rows;
 
     const atletasComIdade = atletas.map((a: (typeof atletas)[number]) => ({
       ...a,
@@ -144,10 +144,41 @@ export const atualizarAtleta = async (req: Request, res: Response): Promise<void
     if (fone !== undefined) dataUpdate.fone = fone;
     if (categoria !== undefined) dataUpdate.categoria = categoria;
 
-    const atletaAtualizado = await prisma.atleta.update({
-      where: { id: atletaId },
-      data: dataUpdate,
-    });
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+    
+    if (dataUpdate.nome) {
+      updates.push(`nome = $${paramIndex++}`);
+      values.push(dataUpdate.nome);
+    }
+    if (dataUpdate.dataNascimento) {
+      updates.push(`"dataNascimento" = $${paramIndex++}`);
+      values.push(dataUpdate.dataNascimento);
+    }
+    if (dataUpdate.genero !== undefined) {
+      updates.push(`genero = $${paramIndex++}`);
+      values.push(dataUpdate.genero);
+    }
+    if (dataUpdate.fone !== undefined) {
+      updates.push(`fone = $${paramIndex++}`);
+      values.push(dataUpdate.fone);
+    }
+    if (dataUpdate.categoria !== undefined) {
+      updates.push(`categoria = $${paramIndex++}`);
+      values.push(dataUpdate.categoria);
+    }
+    
+    if (updates.length > 0) {
+      values.push(atletaId);
+      await query(
+        `UPDATE "Atleta" SET ${updates.join(', ')}, "updatedAt" = NOW() WHERE id = $${paramIndex}`,
+        values
+      );
+    }
+    
+    const result = await query('SELECT * FROM "Atleta" WHERE id = $1', [atletaId]);
+    const atletaAtualizado = result.rows[0];
 
     res.json(atletaAtualizado);
   } catch (error) {
@@ -168,10 +199,9 @@ export const alterarFotoAtleta = async (req: Request, res: Response): Promise<vo
 
     const fotoUrl = `${req.protocol}://${req.get("host")}/uploads/${novaFoto}`;
 
-    const atleta = await prisma.atleta.update({
-      where: { id: atletaId },
-      data: { fotoUrl },
-    });
+    await query('UPDATE "Atleta" SET "fotoUrl" = $1, "updatedAt" = NOW() WHERE id = $2', [fotoUrl, atletaId]);
+    const result = await query('SELECT * FROM "Atleta" WHERE id = $1', [atletaId]);
+    const atleta = result.rows[0];
 
     res.status(200).json({ mensagem: "Foto atualizada com sucesso.", atleta });
   } catch (error) {
@@ -210,10 +240,11 @@ export const verificarAtletaUsuario = async (req: Request, res: Response): Promi
 
     console.log(`[verificarAtletaUsuario][${reqId}] LOOKUP`, { userId: usuario.id });
 
-    const atleta = await prisma.atleta.findFirst({
-      where: { usuarioId: usuario.id },
-      select: { id: true, nome: true, categoria: true, genero: true, fone: true, dataNascimento: true, usuarioId: true },
-    });
+    const result = await query(
+      'SELECT id, nome, categoria, genero, fone, "dataNascimento", "usuarioId" FROM "Atleta" WHERE "usuarioId" = $1 LIMIT 1',
+      [usuario.id]
+    );
+    const atleta = result.rows[0] || null;
 
     if (!atleta) {
       console.log(`[verificarAtletaUsuario][${reqId}] NOT_FOUND`, { userId: usuario.id });
